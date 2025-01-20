@@ -1,17 +1,17 @@
 locals {
-    identifier = "${var.workload_name}-tf-state"
-    developers = "${var.workload_name}-tf-developers"
-    tags = {
-        name = "${local.identifier}"
-        workload = "${var.workload_name}"
-        environment = "all"
-        cost-center = "DevOps"
-    }
+  identifier = "${var.workload_name}-tf-state"
+  developers = "${var.workload_name}-tf-developers"
+  tags = {
+    name        = "${local.identifier}"
+    workload    = "${var.workload_name}"
+    environment = "all"
+    cost-center = "DevOps"
+  }
 }
 
 resource "aws_s3_bucket" "tf_state_bucket" {
-    bucket = local.identifier
-    tags = local.tags
+  bucket = local.identifier
+  tags   = local.tags
 }
 
 # Ignore other ACLs to ensure bucket stays private
@@ -47,13 +47,13 @@ resource "aws_s3_bucket_versioning" "tf_state_bucket" {
   bucket = aws_s3_bucket.tf_state_bucket.id
 
   versioning_configuration {
-    status = "Enabled"
+    status     = "Enabled"
     mfa_delete = "Disabled"
   }
 }
 
 data "aws_kms_alias" "s3" {
-    name = "${local.identifier}-s3"
+  name = "${local.identifier}-s3"
 }
 
 # Bucket encryption settings
@@ -69,9 +69,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "sse" {
 }
 
 resource "aws_dynamodb_table" "tf_state_lock" {
-  name           = "${local.identifier}-lock"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+  name         = "${local.identifier}-lock"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
   # This attribute is mandatory
   # https://developer.hashicorp.com/terraform/language/settings/backends/s3#configuration
@@ -137,5 +137,10 @@ data "aws_iam_policy_document" "state_file_access_permissions" {
       "${data.aws_kms_alias.s3.target_key_arn}/",
     ]
   }
+}
 
+resource "aws_iam_policy" "state_file_access_iam_policy" {
+  name   = "${local.developers}-policy"
+  policy = data.aws_iam_policy_document.state_file_access_permissions.json
+  tags   = local.tags
 }
