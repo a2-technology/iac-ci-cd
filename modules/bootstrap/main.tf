@@ -56,19 +56,19 @@ resource "aws_kms_key" "tf_state_encryption" {
   description             = "Key to encrypt state for ${var.workload_name}"
   enable_key_rotation     = true
   deletion_window_in_days = 7
-  tags = local.tags
+  tags                    = local.tags
 }
-resource "aws_kms_alias" "s3" {
-  name          = "alias/${local.identifier}"
+resource "aws_kms_alias" "tf_state_s3" {
+  name          = "alias/${local.identifier}-s3"
   target_key_id = aws_kms_key.tf_state_encryption.key_id
 }
 
 # Bucket encryption settings
-resource "aws_s3_bucket_server_side_encryption_configuration" "sse" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "tf_state_bucket_sse" {
   bucket = aws_s3_bucket.tf_state_bucket.id
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = aws_kms_alias.s3.target_key_arn
+      kms_master_key_id = aws_kms_alias.tf_state_s3.arn
       sse_algorithm     = "aws:kms"
     }
     bucket_key_enabled = true
@@ -96,7 +96,7 @@ resource "aws_dynamodb_table" "tf_state_lock" {
 
 # IAM Policy document to access the S3 bucket and DynamoDB table used by
 # the state file.
-data "aws_iam_policy_document" "state_file_access_permissions" {
+data "aws_iam_policy_document" "tf_state_access_permissions_policy" {
   statement {
     effect = "Allow"
     actions = [
@@ -137,17 +137,55 @@ data "aws_iam_policy_document" "state_file_access_permissions" {
       "kms:Encrypt",
       "kms:Decrypt",
       "kms:DescribeKey",
-      "kms:ReEncrypt*",
-      "kms:GenerateDataKey*",
+      "kms:ReEncrypt*",       # needed for bucket keys
+      "kms:GenerateDataKey*", # needed for bucket keys
     ]
     resources = [
-      "${aws_kms_alias.s3.target_key_arn}/",
+      "${aws_kms_alias.tf_state_s3.target_key_arn}/",
     ]
   }
 }
 
-resource "aws_iam_policy" "state_file_access_iam_policy" {
+resource "aws_iam_policy" "tf_state_access_iam_policy" {
   name   = "${local.developers}-policy"
-  policy = data.aws_iam_policy_document.state_file_access_permissions.json
+  policy = data.aws_iam_policy_document.tf_state_access_permissions_policy.json
   tags   = local.tags
+}
+
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "tf_developers_assume_role_policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    # This has to be created outside of terraform
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-reserved/sso.amazonaws.com/${var.region}/${var.sso_role_name}"]
+    }
+  }
+}
+
+resource "aws_iam_role" "tf_developers" {
+  name               = local.developers
+  path               = "/"
+  assume_role_policy = data.aws_iam_policy_document.tf_developers_assume_role_policy.json
+  tags               = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "tf_developers_permissions_policy" {
+  role       = aws_iam_role.tf_developers.name
+  policy_arn = aws_iam_policy.tf_state_access_iam_policy.arn
+}
+
+resource "aws_ssm_parameter" "developer_role_arn" {
+  name  = local.developers
+  type  = "String"
+  value = aws_iam_role.tf_developers.arn
+}
+
+resource "aws_ssm_parameter" "tf_state_bucket" {
+  name  = local.identifier
+  type  = "String"
+  value = aws_s3_bucket.tf_state_bucket.arn
 }
