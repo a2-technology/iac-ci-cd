@@ -4,7 +4,7 @@ locals {
   tags = {
     name        = "${local.identifier}"
     workload    = "${var.workload_name}"
-    environment = "all"
+    environment = "${var.environment}"
     cost-center = "DevOps"
   }
 }

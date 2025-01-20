@@ -13,3 +13,8 @@ variable "region" {
   type        = string
   default     = "us-east-2"
 }
+
+variable "environment" {
+  description = "(Required) The environment these resources are supporting"
+  type        = string
+}
