@@ -17,16 +17,15 @@ resource "aws_s3_bucket" "tf_state_bucket" {
 # Ignore other ACLs to ensure bucket stays private
 resource "aws_s3_bucket_public_access_block" "tf_state_bucket" {
   bucket                  = aws_s3_bucket.tf_state_bucket.id
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 # Set ownership controls to bucket to prevent access from other AWS accounts
 resource "aws_s3_bucket_ownership_controls" "tf_state_bucket" {
   bucket = aws_s3_bucket.tf_state_bucket.id
-
   rule {
     object_ownership = "BucketOwnerPreferred"
   }
@@ -52,8 +51,16 @@ resource "aws_s3_bucket_versioning" "tf_state_bucket" {
   }
 }
 
-data "aws_kms_alias" "s3" {
-  name = "${local.identifier}-s3"
+# Encryption key for state files
+resource "aws_kms_key" "tf_state_encryption" {
+  description             = "Key to encrypt state for ${var.workload_name}"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+  tags = local.tags
+}
+resource "aws_kms_alias" "s3" {
+  name          = "alias/${local.identifier}"
+  target_key_id = aws_kms_key.tf_state_encryption.key_id
 }
 
 # Bucket encryption settings
@@ -61,7 +68,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "sse" {
   bucket = aws_s3_bucket.tf_state_bucket.id
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = data.aws_kms_alias.s3.target_key_arn
+      kms_master_key_id = aws_kms_alias.s3.target_key_arn
       sse_algorithm     = "aws:kms"
     }
     bucket_key_enabled = true
@@ -134,7 +141,7 @@ data "aws_iam_policy_document" "state_file_access_permissions" {
       "kms:GenerateDataKey*",
     ]
     resources = [
-      "${data.aws_kms_alias.s3.target_key_arn}/",
+      "${aws_kms_alias.s3.target_key_arn}/",
     ]
   }
 }
