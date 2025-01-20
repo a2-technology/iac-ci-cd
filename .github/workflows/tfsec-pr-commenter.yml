@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - "env/**"
+      - "main"
 jobs:
   tfsec:
     name: tfsec PR commenter
