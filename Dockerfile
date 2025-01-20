@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y wget gpg gnupg unzip git \
     && rm -f terraform_${TF_VERSION}_linux_amd64.zip terraform_${TF_VERSION}_SHA256SUMS terraform_${TF_VERSION}_SHA256SUMS.sig \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /home/ubuntu 
+WORKDIR /home/ubuntu
+COPY . .
 
 RUN terraform fmt --recursive \
     && terraform init \
