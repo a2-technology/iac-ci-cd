@@ -1,3 +1,7 @@
+# root terraform outputs
 .terraform
-
 *terraform.tfstate*
+
+# nested module outputs
+**/.terraform
+**/*terraform.tfstate*
