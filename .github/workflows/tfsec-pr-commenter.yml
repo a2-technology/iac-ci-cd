@@ -1,0 +1,19 @@
+name: tfsec-pr-commenter
+on:
+  pull_request:
+    branches:
+      - "env/**"
+      - "main"
+jobs:
+  tfsec:
+    name: tfsec PR commenter
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+      - name: tfsec
+        uses: aquasecurity/tfsec-pr-commenter-action@v1.2.0
+        with:
+          tfsec_args: --soft-fail --force-all-dirs
+          github_token: ${{ github.token }}

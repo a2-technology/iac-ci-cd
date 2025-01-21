@@ -9,4 +9,9 @@
 
 ![organization](docs/organization.png)
 
-2. A permission set for terraform developers must be provisioned to the Deployments account through IAM Identity Center that provides read-only access to the state files corresponding to the workload accounts they require access to.
+WIP
+
+## Future enhancements/work
+
+1. Automate the state of the bootstrap module into the default workspace
+2. Push artifact to ECR without the .terraform directory to save on storage. Include the plan, scan, and terraform.lock.hcl // not sure if this will work

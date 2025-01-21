@@ -1,0 +1,12 @@
+# ignore locally installed modules and providers
+.terraform
+**/.terraform
+
+# remove git-related items
+.git
+.gitignore
+.github
+
+# Remove supporting docs
+docs
+README.md

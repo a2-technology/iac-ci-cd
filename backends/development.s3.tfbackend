@@ -1,0 +1,7 @@
+region = "region of ci-cd account"
+bucket = "bucket name holding workload terraform state"
+workspace_key_prefix = "the name of the environment"
+key = "the name of the terraform state file"
+encrypt = true
+kms_key_id = "the ecryption key used on the s3 state bucket"
+dynamodb_table = "the table name holding the lock for the workflow"
