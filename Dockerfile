@@ -1,5 +1,5 @@
 FROM ubuntu:noble-20241118.1 AS install
-ARG TF_VERSION
+ARG TF_VERSION=1.10.3
 
 # checksum validation; see https://www.hashicorp.com/trust/security and https://developer.hashicorp.com/well-architected-framework/operational-excellence/verify-hashicorp-binary
 RUN apt-get update && apt-get install -y wget gpg gnupg unzip git \
@@ -24,3 +24,9 @@ RUN terraform fmt --recursive \
     && chown ubuntu:ubuntu -R /home/ubuntu
 
 USER ubuntu
+
+# TODO Add plan and scan steps with appropriate args
+# TODO Add label metadate
+
+ENTRYPOINT [ "terraform" ]
+CMD [ "-v" ]
